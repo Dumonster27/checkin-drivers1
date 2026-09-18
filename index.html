@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="theme-color" content="#EE4D2D">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>Check-in Driver - Shopee</title>
+  <style>
+    :root {
+      --shopee-orange: #EE4D2D;
+      --shopee-dark-orange: #d73211;
+      --bg-gray: #f5f5f5;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      background-color: var(--bg-gray);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      background: #ffffff;
+      min-height: 100vh;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .header {
+      background-color: var(--shopee-orange);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    
+    .content {
+      padding: 20px;
+      flex: 1;
+    }
+    
+    .card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    label {
+      font-weight: 600;
+      color: #333;
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+    }
+    
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    
+    button {
+      width: 100%;
+      background-color: var(--shopee-orange);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background-color: var(--shopee-dark-orange);
+    }
+    
+    .btn-secondary {
+      background-color: #666;
+      margin-top: 8px;
+    }
+    
+    .step { display: none; }
+    .step.active { display: block; }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+    }
+    .badge-ok { background-color: #2e7d32; }
+    .badge-alert { background-color: #c62828; }
+    
+    .ajudante-group {
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      border-left: 3px solid var(--shopee-orange);
+    }
+
+    .camera-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    .camera-modal.active { display: flex; }
+
+    .camera-panel {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    #cameraPreview {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #111;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+
+    .camera-status {
+      color: #555;
+      font-size: 14px;
+      margin: 0 0 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="header">
+    Shopee Logística
+  </div>
+  
+  <div class="content">
+    
+    <!-- PASSO 1: OPERADOR DE SEGURANÇA -->
+    <div id="step1" class="step active">
+      <div class="card">
+        <h3>Operador Segurança Ativo</h3>
+        <label for="nomeOperador">Nome do Segurança Responsável:</label>
+        <input type="text" id="nomeOperador" placeholder="Digite seu nome completo">
+        <button onclick="iniciarSessao()">Iniciar Sessão Check-in</button>
+      </div>
+    </div>
+
+    <!-- PASSO 2: CONSULTAR DRIVER -->
+    <div id="step2" class="step">
+      <p><strong>Segurança:</strong> <span id="displayOperador"></span></p>
+      <div class="card">
+        <h3>Consultar Driver</h3>
+        <label>Digite abaixo o ID do driver, CPF ou RG para realizar a consulta:</label>
+        <input type="text" id="termoBusca" placeholder="ID, CPF ou RG">
+        <button onclick="buscarDriver()">Consultar Motorista</button>
+        <button class="btn-secondary" onclick="simularLeitor()">📷 Ler Código de Barras (Câmera)</button>
+      </div>
+    </div>
+
+    <!-- PASSO 3: DADOS DO MOTORISTA E CONFERÊNCIA -->
+    <div id="step3" class="step">
+      <div class="card">
+        <h3>Dados do Motorista</h3>
+        <p><strong>Nome:</strong> <span id="drvNome"></span></p>
+        <p><strong>CPF:</strong> <span id="drvCpf"></span> | <strong>RG:</strong> <span id="drvRg"></span></p>
+        <p><strong>Status App:</strong> <span id="drvApp"></span></p>
+        <p><strong>Habilitação (CNH):</strong> <span id="drvCnh"></span></p>
+        <p><strong>Placa Cadastrada:</strong> <span id="drvPlaca"></span></p>
+      </div>
+
+      <div class="card">
+        <h3>Conferência de Segurança</h3>
+        
+        <label>A placa do veículo bate com o cadastro?</label>
+        <select id="confirmaPlaca">
+          <option value="SIM">Sim, confere</option>
+          <option value="NAO">Não confere</option>
+        </select>
+
+        <label>Possui alguma avaria ou ocorrência?</label>
+        <select id="temOcorrencia" onchange="toggleOcorrencia()">
+          <option value="NAO">Não (Tudo OK)</option>
+          <option value="SIM">Sim (Adicionar Ocorrência)</option>
+        </select>
+
+        <div id="boxOcorrencia" style="display:none;">
+          <label for="txtOcorrencia">Descreva a ocorrência/avaria:</label>
+          <textarea id="txtOcorrencia" rows="3" placeholder="Detalhes do problema..."></textarea>
+        </div>
+
+        <label>Tem ajudantes?</label>
+        <select id="temAjudante" onchange="toggleAjudantes()">
+          <option value="NAO">Não</option>
+          <option value="SIM">Sim</option>
+        </select>
+
+        <div id="boxQtdAjudantes" style="display:none;">
+          <label for="qtdAjudantes">Quantos ajudantes?</label>
+          <input type="number" id="qtdAjudantes" min="1" max="5" value="1" onchange="gerarCamposAjudantes()">
+          <div id="containerAjudantes"></div>
+        </div>
+
+        <button onclick="finalizarCheckin()">Concluir e Salvar Check-in</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="cameraModal" class="camera-modal" role="dialog" aria-modal="true" aria-labelledby="cameraTitle">
+  <div class="camera-panel">
+    <h3 id="cameraTitle">Ler código de barras</h3>
+    <video id="cameraPreview" autoplay muted playsinline></video>
+    <p id="cameraStatus" class="camera-status">Aponte a câmera para o código do motorista.</p>
+    <button class="btn-secondary" onclick="fecharLeitor()">Fechar câmera</button>
+  </div>
+</div>
+
+<script>
+  let dadosMotoristaAtual = null;
+  let cameraStream = null;
+  let barcodeDetector = null;
+  let scanFrame = null;
+  const API_BASE = location.port === '3001' ? '' : `${location.protocol}//${location.hostname}:3001`;
+
+  function iniciarSessao() {
+    const operador = document.getElementById('nomeOperador').value;
+    if (!operador.trim()) {
+      alert('Por favor, informe o nome do segurança.');
+      return;
+    }
+    document.getElementById('displayOperador').innerText = operador;
+    mudarPasso('step2');
+  }
+
+  function buscarDriver() {
+    const termo = document.getElementById('termoBusca').value;
+    if (!termo.trim()) {
+      alert('Digite o ID, CPF ou RG.');
+      return;
+    }
+
+    console.log('=== BUSCA DO MOTORISTA ===');
+    console.log('Termo informado:', termo);
+
+    fetch(`${API_BASE}/api/drivers?term=${encodeURIComponent(termo)}`)
+      .then(response => response.json())
+      .then(resposta => {
+        console.log('Resposta da busca:', resposta);
+
+        if (resposta && resposta.sucesso) {
+          dadosMotoristaAtual = resposta;
+          document.getElementById('drvNome').innerText = resposta.nome;
+          document.getElementById('drvCpf').innerText = resposta.cpf;
+          document.getElementById('drvRg').innerText = resposta.rg;
+          document.getElementById('drvPlaca').innerText = resposta.placa;
+
+          document.getElementById('drvApp').innerHTML = `<span class="badge ${resposta.appStatus === 'OK' ? 'badge-ok' : 'badge-alert'}">${resposta.appStatus}</span>`;
+          document.getElementById('drvCnh').innerHTML = `<span class="badge ${resposta.cnhStatus === 'Válida' ? 'badge-ok' : 'badge-alert'}">${resposta.cnhStatus}</span>`;
+
+          mudarPasso('step3');
+        } else {
+          alert((resposta && resposta.mensagem) || 'Driver não encontrado na base de dados.');
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao consultar motorista:', err);
+        alert('Erro ao consultar motorista. Verifique se o backend está rodando e se a planilha foi configurada corretamente.');
+      });
+  }
+
+  async function simularLeitor() {
+    const CameraBarcodeDetector = window.BarcodeDetector;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Este navegador não permite acesso à câmera. Abra pelo localhost ou HTTPS.');
+      return;
+    }
+    if (!CameraBarcodeDetector) {
+      alert('A leitura automática de código de barras não é compatível com este navegador. Digite o ID manualmente.');
+      return;
+    }
+
+    try {
+      barcodeDetector = new CameraBarcodeDetector({ formats: ['code_128', 'code_39', 'ean_13', 'ean_8', 'qr_code'] });
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false
+      });
+      const video = document.getElementById('cameraPreview');
+      video.srcObject = cameraStream;
+      document.getElementById('cameraStatus').innerText = 'Aponte a câmera para o código do motorista.';
+      document.getElementById('cameraModal').classList.add('active');
+      scanFrame = requestAnimationFrame(verificarCodigo);
+    } catch (error) {
+      console.error('Erro ao abrir câmera:', error);
+      fecharLeitor();
+      alert('Não foi possível abrir a câmera. Autorize o acesso e tente novamente.');
+    }
+  }
+
+  async function verificarCodigo() {
+    const video = document.getElementById('cameraPreview');
+    if (!barcodeDetector || !cameraStream) return;
+
+    try {
+      const codes = await barcodeDetector.detect(video);
+      if (codes.length && codes[0].rawValue) {
+        document.getElementById('termoBusca').value = codes[0].rawValue;
+        fecharLeitor();
+        buscarDriver();
+        return;
+      }
+    } catch (error) {
+      console.error('Erro ao ler código:', error);
+    }
+
+    scanFrame = requestAnimationFrame(verificarCodigo);
+  }
+
+  function fecharLeitor() {
+    if (scanFrame) cancelAnimationFrame(scanFrame);
+    scanFrame = null;
+    if (cameraStream) cameraStream.getTracks().forEach(track => track.stop());
+    cameraStream = null;
+    barcodeDetector = null;
+    const video = document.getElementById('cameraPreview');
+    if (video) video.srcObject = null;
+    const modal = document.getElementById('cameraModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function toggleOcorrencia() {
+    const select = document.getElementById('temOcorrencia').value;
+    document.getElementById('boxOcorrencia').style.display = (select === 'SIM') ? 'block' : 'none';
+  }
+
+  function toggleAjudantes() {
+    const select = document.getElementById('temAjudante').value;
+    const box = document.getElementById('boxQtdAjudantes');
+    if (select === 'SIM') {
+      box.style.display = 'block';
+      gerarCamposAjudantes();
+    } else {
+      box.style.display = 'none';
+    }
+  }
+
+  function gerarCamposAjudantes() {
+    const qtd = parseInt(document.getElementById('qtdAjudantes').value) || 1;
+    const container = document.getElementById('containerAjudantes');
+    container.innerHTML = '';
+
+    for (let i = 1; i <= qtd; i++) {
+      container.innerHTML += `
+        <div class="ajudante-group">
+          <strong>Ajudante ${i}</strong>
+          <input type="text" id="nomeAjudante_${i}" placeholder="Nome do Ajudante ${i}">
+          <input type="text" id="docAjudante_${i}" placeholder="Documento (CPF/RG) ${i}">
+        </div>
+      `;
+    }
+  }
+
+  function finalizarCheckin() {
+    if (!dadosMotoristaAtual) {
+      alert('Primeiro consulte um motorista antes de concluir o check-in.');
+      return;
+    }
+
+    const operador = document.getElementById('nomeOperador').value;
+    const temAjudante = document.getElementById('temAjudante').value;
+    const qtdAjudantes = temAjudante === 'SIM' ? document.getElementById('qtdAjudantes').value : 0;
+    
+    let nomesAjudantesArr = [];
+    let docsAjudantesArr = [];
+
+    if (temAjudante === 'SIM') {
+      for (let i = 1; i <= qtdAjudantes; i++) {
+        const nome = document.getElementById(`nomeAjudante_${i}`).value;
+        const doc = document.getElementById(`docAjudante_${i}`).value;
+        if (nome) nomesAjudantesArr.push(nome);
+        if (doc) docsAjudantesArr.push(doc);
+      }
+    }
+
+    const payload = {
+      operador: operador,
+      driverId: dadosMotoristaAtual.id,
+      driverNome: dadosMotoristaAtual.nome,
+      driverCpf: dadosMotoristaAtual.cpf,
+      driverRg: dadosMotoristaAtual.rg,
+      placaStatus: document.getElementById('confirmaPlaca').value,
+      ocorrencia: document.getElementById('temOcorrencia').value === 'SIM' ? document.getElementById('txtOcorrencia').value : '',
+      qtdAjudantes: qtdAjudantes,
+      nomesAjudantes: nomesAjudantesArr.join(', '),
+      docsAjudantes: docsAjudantesArr.join(', ')
+    };
+
+    fetch(`${API_BASE}/api/checkins`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+      .then(response => response.json())
+      .then(res => {
+        if (res && res.sucesso) {
+          alert('Check-in registrado com sucesso!');
+          document.getElementById('termoBusca').value = '';
+          dadosMotoristaAtual = null;
+          mudarPasso('step2');
+        } else {
+          alert('Não foi possível salvar o check-in.');
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao registrar check-in:', err);
+        alert('Erro ao salvar o check-in.');
+      });
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.error('Service worker falhou:', err);
+      });
+    });
+  }
+
+  function mudarPasso(stepId) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById(stepId).classList.add('active');
+  }
+</script>
+
+</body>
+</html>
